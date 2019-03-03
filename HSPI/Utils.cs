@@ -241,9 +241,9 @@ namespace HSPI_AKTemplate
 
         /// <summary>
         /// Get dictionary of all named peds,
-        /// can pass ONE of the arguments:
         /// </summary>
-        /// <param name="ped"></param>
+        /// <param name="ped">Device PED</param>
+        /// <param name="part">Part of the PED name to filter peds</param>
         /// <returns></returns>
         public static Dictionary<string, object> GetAllPEDs(clsPlugExtraData ped, string part = null)
         {
@@ -278,132 +278,6 @@ namespace HSPI_AKTemplate
             return lst;
         }
 
-        /// <summary>
-        /// Rename all devices PEDs, used only for update
-        /// </summary>
-        /// <param name="devices"></param>
-        public static void UpdatePedNames(DeviceDictHS devices)
-        {
-            foreach (KeyValuePair<int, HSDevice> pair in devices)
-            {
-                HSDevice dev = pair.Value;
-                Console.WriteLine($"Device {pair.Key}: {dev.get_Name(null)}");
-                UpdatePedNames(dev);
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="deviceHS"></param>
-        public static void UpdatePedNames(HSDevice deviceHS)
-        {
-            string append = "ak_";
-            string[] names = { "use_cntdwn_timer",
-                               "use_status_device",
-                               "log_enable",
-                               "checkConditionsSatisfiedTriggerTimerCallback",
-                               "CurrentTab",
-                               "ctrlType",
-                               "groups",
-                               "DropListLocation",
-                               "DropListLocation2",
-                               "StateDeviceId"
-            };
-            string[] names_start = {
-                                "cntdwnState",
-                                "cntdwnTimerDelay",
-                                "cntdwnStartState",
-                                "cntdwnEndState",
-                                "slide_",
-                                "grp_"
-            };
-
-
-            var ped = deviceHS.get_PlugExtraData_Get(Hs);
-
-            if (ped != null && ped.GetNamedKeys() != null)
-            {
-                foreach (string name in ped.GetNamedKeys())
-                {
-                    Console.WriteLine($"  Name: {name}");
-                    if (name.StartsWith(append))
-                        continue;
-
-                    bool found = false;
-
-                    foreach (string name1 in names_start)
-                    {
-                        string n = name1.ToLower();
-                        //Console.WriteLine($"   try1 : {n}");
-                        if (name.StartsWith(n))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        foreach (string name1 in names)
-                        {
-                            string n = name1.ToLower();
-                            //Console.WriteLine($"   try2 : {n}");
-                            if (name == n)
-                            {
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        Console.WriteLine($"  NOT FOUND: {name}");
-                        continue;
-                    }
-
-                    string new_name = append + name;
-                    Console.WriteLine($"  Change to: {new_name}");
-
-                    object ped_val = PedGet(ped, name);
-                    PedAdd(ped, new_name, ped_val);
-                    ped.RemoveNamed(name);
-                }
-
-                deviceHS.set_PlugExtraData_Set(Hs, ped);
-            }
-
-        }
-
-        /// <summary>
-        /// After moving class "DeviceIdList" to HSPI base need to tell BinaryFormatter where to look for it
-        /// Not used anymore, but may be useful for future upgrades
-        /// </summary>
-        //sealed class Version1ToVersion2DeserializationBinder : SerializationBinder
-        //{
-        //    public override Type BindToType(string assemblyName, string typeName)
-        //    {
-        //        // For each assemblyName/typeName that you want to deserialize to
-        //        // a different type, set typeToDeserialize to the desired type.
-        //        String assemVer1 = Assembly.GetExecutingAssembly().FullName;
-        //        String typeVer1 = "HSPI_AKExample.DeviceIdList";
-        //
-        //        if (/*assemblyName == assemVer1 &&*/ typeName == typeVer1)
-        //        {
-        //            Console.WriteLine($"@@@ Changing {assemblyName} {typeName}");
-        //            // To use a type from a different assembly version
-        //            assemblyName = typeof(DeviceIdList).Assembly.FullName;
-        //            // To use a different type from the same assembly, change the type name.
-        //            typeName = typeof(DeviceIdList).FullName;
-        //            Console.WriteLine($"          to {assemblyName} {typeName}");
-        //        }
-        //
-        //        // Convert to new type
-        //        Type typeToDeserialize = Type.GetType($"{typeName}, {assemblyName}");
-        //        return typeToDeserialize;
-        //    }
-        //}
 
         #endregion SerializeObject
 
