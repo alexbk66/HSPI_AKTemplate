@@ -1,0 +1,9 @@
+,[CHECKVERSION],3.0.0.13
+HSPI_AKExample.exe,.,0
+HSPI_AKExample.exe.config,.,0
+CommandLine.dll,.\bin\AKSmartDevice,0
+Hspi.dll,.\bin\AKSmartDevice,0
+AKSmartDeviceVer1.pdf,.\Docs\AKSmartDevice,0
+AKSmartDeviceVer1.htm,.\html\AKSmartDevice,0
+AKSmartDeviceVer1_files.zip,[UNZIPOVER],.\html\AKSmartDevice
+youtube.png,.\html\AKSmartDevice,0
