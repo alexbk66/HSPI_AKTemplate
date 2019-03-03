@@ -1,0 +1,1 @@
+# HSPI_AKTemplate
