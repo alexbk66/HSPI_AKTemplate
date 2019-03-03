@@ -9,7 +9,7 @@ using HSPI_AKTemplate;
 namespace HSPI_AKExample
 {
     using HSDevice = Scheduler.Classes.DeviceClass;
-    using DeviceDict = Dictionary<int, SmartDevice>;
+    using DeviceDict = Dictionary<int, DeviceBase>;
 
     class StatusPage : PageBuilder
     {
@@ -76,8 +76,8 @@ namespace HSPI_AKExample
                                         DeviceDict UsedDevices,
                                         string title = null,
                                         string tt = null,
-                                        SmartDevice stateDevice = null,
-                                        SmartDevice triggerDevice = null,
+                                        DeviceBase stateDevice = null,
+                                        DeviceBase triggerDevice = null,
                                         string page_name = null,
                                         bool sorthdr = true,
                                         string sortby = null,
@@ -102,15 +102,15 @@ namespace HSPI_AKExample
             // Prepare TableData
             TableBuilder.TableData data = new TableBuilder.TableData();
 
-            foreach (SmartDevice device in UsedDevices.Values)
+            foreach (DeviceBase device in UsedDevices.Values)
             {
                 // Filter 1: list of devices controlled by stateDevice
-                if (stateDevice != null && device.StateDeviceId != stateDevice.RefId)
-                    continue;
-
-                // Filter 2: list of devices controlled by stateDevice
-                if (triggerDevice != null && !device.TriggerDevices.Contains(triggerDevice.RefId))
-                    continue;
+                //?if (stateDevice != null && device.StateDeviceId != stateDevice.RefId)
+                //?    continue;
+                //?
+                //?// Filter 2: list of devices controlled by stateDevice
+                //?if (triggerDevice != null && !device.TriggerDevices.Contains(triggerDevice.RefId))
+                //?    continue;
 
                 var row = data.AddRow();
 
@@ -125,19 +125,19 @@ namespace HSPI_AKExample
                 row.Add(device.GetURL());
                 row.Add(device.Interface);
                 row.Add(device.Type);
-                row.Add(BoolToImg(device.use_cntdwn_timer));
-                row.Add(Utils.ToString(device.AfterDelay));
+                //?row.Add(BoolToImg(device.use_cntdwn_timer));
+                //?row.Add(Utils.ToString(device.AfterDelay));
                 row.Add(String.Join(", ", device.vspsListStr(ePairStatusControl.Both)));
                 row.Add(device.LastChange);
                 row.Add(BoolToImg(device.log_enable));
-                row.Add(device.ListOfTriggerIds());
+                //?row.Add(device.ListOfTriggerIds());
 
                 // Don't show state device if already on the state device page
-                if (stateDevice == null)
-                {
-                    row.Add(device.StateDeviceURL);
-                    row.Add(device.StateDeviceId != 0 ? device.StateDevice.LastChange : "");
-                };
+                //?if (stateDevice == null)
+                //?{
+                //?    row.Add(device.StateDeviceURL);
+                //?    row.Add(device.StateDeviceId != 0 ? device.StateDevice.LastChange : "");
+                //?};
             }
 
             string html = TableBuilder.BuildTable(data,

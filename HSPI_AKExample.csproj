@@ -9,8 +9,8 @@
     <ProjectGuid>{BB30A964-4656-485C-93D9-B37FDE1B7B62}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>HSPI_AKPCUtils</RootNamespace>
-    <AssemblyName>HSPI_AKPCUtils</AssemblyName>
+    <RootNamespace>HSPI_AKExample</RootNamespace>
+    <AssemblyName>HSPI_AKExample</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
