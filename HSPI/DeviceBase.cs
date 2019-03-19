@@ -12,11 +12,13 @@ using Scheduler;
 using HomeSeerAPI;
 using static HomeSeerAPI.VSVGPairs;
 using static HomeSeerAPI.PlugExtraData;
+using static HomeSeerAPI.DeviceTypeInfo_m.DeviceTypeInfo;
+using static HomeSeerAPI.Enums;
+using System.Collections.Specialized;
 
 namespace HSPI_AKTemplate
 {
     using HSDevice = Scheduler.Classes.DeviceClass;
-
 
     /// <summary>
     /// Create minimal device if used only for reading device config(PED)
@@ -29,6 +31,8 @@ namespace HSPI_AKTemplate
     /// </summary>
     public partial class DeviceBase
     {
+        public static string ADDR_PREFIX = "AK";
+
         // Underlying (wrapped) HS devise
         public HSDevice deviceHS { get; protected set; }
 
@@ -63,7 +67,8 @@ namespace HSPI_AKTemplate
                 if (deviceHS == null)
                 {
                     // Deleted device. This also sets "Attension" field
-                    LogErr("Device doesn't exist in the system");
+                    if (devID > 0)
+                        LogErr("Device doesn't exist in the system");
                     return;
                 }
             }
@@ -106,32 +111,44 @@ namespace HSPI_AKTemplate
             return $"(Ref: {RefId}) {Name} ({DeviceString})";
         }
 
-        public virtual void Create()
+        public virtual bool Create()
         {
             throw new NotImplementedException();
         }
 
-        public void Create(string name, bool force)
+        public bool Create( string name,
+                            bool force,
+                            string type = "Virtual",
+                            eDeviceAPI Device_API = eDeviceAPI.Plug_In,
+                            int Device_Type = (int)eDeviceAPI.Plug_In,
+                            int Device_SubType = 0,
+                            string Device_SubType_Description = ""
+                           )
         {
-            string addr = "AK_" + name;
+            string addr = ADDR_PREFIX + name;
 
             deviceHS  = controller.GetHSDeviceByAddress(addr, out bool created, create: true, name: name);
 
             RefId = deviceHS.get_Ref(null);
 
-            if(created)
+            if (created)
             {
-                DeviceTypeInfo_m.DeviceTypeInfo DT = new DeviceTypeInfo_m.DeviceTypeInfo();
-                DT.Device_API = DeviceTypeInfo_m.DeviceTypeInfo.eDeviceAPI.Security;
-                DT.Device_Type = (int)DeviceTypeInfo_m.DeviceTypeInfo.eDeviceAPI.Plug_In;
+                DeviceTypeInfo_m.DeviceTypeInfo DT = new DeviceTypeInfo_m.DeviceTypeInfo()
+                {
+                    Device_API = Device_API,
+                    Device_Type = Device_Type,
+                    Device_SubType = Device_SubType,
+                    Device_SubType_Description = Device_SubType_Description
+                };
                 deviceHS.set_DeviceType_Set(hs, DT);
+
                 deviceHS.set_InterfaceInstance(hs, "");
                 deviceHS.set_Status_Support(hs, false);//Set to True if the devices can be polled,  false if not
-                deviceHS.MISC_Set(hs, Enums.dvMISC.SHOW_VALUES);
-                deviceHS.MISC_Set(hs, Enums.dvMISC.NO_LOG);
+                deviceHS.MISC_Set(hs, Enums.dvMISC.SHOW_VALUES | Enums.dvMISC.NO_LOG);
+                deviceHS.MISC_Clear(hs, Enums.dvMISC.AUTO_VOICE_COMMAND);
 
                 Interface = controller.plugin.Name;
-                Type = "Virtual";
+                Type = type;
                 Address = addr;
 
                 //Location = "EnOcean";
@@ -141,11 +158,21 @@ namespace HSPI_AKTemplate
 
             controller.UsedDevices[RefId] = this;
 
+            return created;
         }
 
-        public VSPair AddVSPair(double Value, string Status, ePairControlUse ControlUse, string Graphic = null)
+        #endregion Construction
+
+        #region VSPair
+
+        public VSPair AddVSPair(double Value,
+                                string Status,
+                                ePairControlUse ControlUse,
+                                string Graphic = null,
+                                ePairStatusControl Status_Control = ePairStatusControl.Both
+                                )
         {
-            var svPair = new VSPair(ePairStatusControl.Both)
+            var svPair = new VSPair(Status_Control)
             {
                 PairType = VSVGPairType.SingleValue,
                 Value = Value,
@@ -168,9 +195,103 @@ namespace HSPI_AKTemplate
             return svPair;
         }
 
+        public VSPair AddVSRangePair(double Start,
+                                     double End,
+                                     string Prefix = "",
+                                     string Suffix = "",
+                                     int RangeStatusDecimals = 0,
+                                     ePairControlUse ControlUse = ePairControlUse.Not_Specified,
+                                     CAPIControlType ControlType = CAPIControlType.ValuesRange,
+                                     string Graphic = null,
+                                     ePairStatusControl Status_Control = ePairStatusControl.Both
+                                    )
+        {
+            var svPair = new VSPair(Status_Control)
+            {
+                PairType = VSVGPairType.Range,
+                RangeStart = Start,
+                RangeEnd = End,
+                ControlUse = ControlUse,
+                Render = ControlType,
+                IncludeValues = true,
+                RangeStatusPrefix = Prefix,
+                RangeStatusSuffix = Suffix,
+                RangeStatusDecimals = RangeStatusDecimals
+            };
 
-        #endregion Construction
+            bool ret = hs.DeviceVSP_AddPair(RefId, svPair);
 
+            if (Graphic != null)
+            {
+                var vgPair = new VGPair();
+                vgPair.PairType = VSVGPairType.Range;
+                vgPair.RangeStart = Start;
+                vgPair.RangeEnd = End;
+                vgPair.Graphic = Graphic;
+                ret = hs.DeviceVGP_AddPair(RefId, vgPair);
+            }
+            return svPair;
+        }
+
+        public VSPair AddVSTemperaturePair(bool C,
+                                           double Start = 0,
+                                           double End = 35,
+                                           string Suffix = null,
+                                           int RangeStatusDecimals = 0,
+                                           ePairControlUse ControlUse = ePairControlUse.Not_Specified,
+                                           CAPIControlType ControlType = CAPIControlType.ValuesRange,
+                                           string Graphic = "/images/HomeSeer/status/Thermometer-50.png",
+                                           ePairStatusControl Status_Control = ePairStatusControl.Both
+                                           )
+        {
+            return AddVSRangePair(Start,
+                                  End,
+                                  Suffix: Suffix ?? (C ? " °C" : " °F"),
+                                  Graphic: Graphic,
+                                  RangeStatusDecimals: RangeStatusDecimals,
+                                  ControlUse: ControlUse,
+                                  ControlType: ControlType,
+                                  Status_Control: Status_Control
+                                  );
+        }
+
+
+        #endregion VSPair
+
+        #region Relationship
+
+        /// <summary>
+        /// Sets the parent.
+        /// </summary>
+        /// <param name="parent">The parent.</param>
+        public void SetParent(DeviceBase parent)
+        {
+            parent.AddAssociatedDevice(this);
+            parent.SetRelationship(eRelationship.Parent_Root);
+            AddAssociatedDevice(parent);
+            SetRelationship(eRelationship.Child);
+        }
+
+        /// <summary>
+        /// Adds the associated device.
+        /// </summary>
+        /// <param name="dvRef">The dv reference.</param>
+        public void AddAssociatedDevice(int dvRef) => deviceHS.AssociatedDevice_Add(hs, dvRef);
+
+        /// <summary>
+        /// Adds the associated device.
+        /// </summary>
+        /// <param name="device">The device.</param>
+        public void AddAssociatedDevice(DeviceBase device) => AddAssociatedDevice(device.RefId);
+
+        /// <summary>
+        /// Sets the relationship.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void SetRelationship(eRelationship value) => deviceHS.set_Relationship(hs, value);
+
+
+        #endregion Relationship
 
         #region Properties
 
@@ -448,18 +569,19 @@ namespace HSPI_AKTemplate
                             return;
                     }
 
-                    if (type == ControlType.Both || type == ControlType.SetByRef)
+                    if (type == ControlType.SetByRef)
                     {
                         hs.SetDeviceValueByRef(this.RefId, value, trigger: true);
                     }
 
-                    if (type == ControlType.Both || type == ControlType.CAPI)
+                    if (type == ControlType.CAPI)
                     {
                         CAPI.CAPIControl ctrl = this.statusPairsDict.GetCAPIControl(value);
                         CAPI.CAPIControlResponse ret = hs.CAPIControlHandler(ctrl);
                     }
 
-                    Log($"SetValue: '{Name}' = '{value}' ({type})");
+                    if (ValueCached != value)
+                        Log($"SetValue: '{Name}' = '{value}' ({type})");
                     ValueCached = value;
                 }
                 catch (Exception ex)
@@ -469,6 +591,17 @@ namespace HSPI_AKTemplate
                     LogErr($"Error setting device value : '{value}'. {ex.Message}");
                 }
             }
+        }
+
+        /// <summary>
+        /// Called from SetIOMulti
+        /// </summary>
+        /// <param name="value"></param>
+        public virtual void SetValue(double value)
+        {
+            // Called from SetIOMulti - must use SetDeviceValueByRef, not CAPIControl
+            forceSetDeviceValueByRef = true; // Device will reset it back
+            Value = value;
         }
 
         /// <summary>
@@ -530,17 +663,26 @@ namespace HSPI_AKTemplate
 
         #region PED Methods
 
+        private clsPlugExtraData _ped = null;
+
         public clsPlugExtraData ped
         {
             set
             {
+                _ped = value;
                 if (this.deviceHS != null)
-                    this.deviceHS.set_PlugExtraData_Set(null, value);
+                {
+                    this.deviceHS.set_PlugExtraData_Set(null, _ped);
+                    this.deviceHS.set_PlugExtraData_Set(hs, _ped);
+                }
             }
             get
             {
-                if (deviceHS == null) return null;
-                return this.deviceHS.get_PlugExtraData_Get(null);
+                if (_ped==null && deviceHS != null)
+                    _ped = this.deviceHS.get_PlugExtraData_Get(hs);
+                if (_ped == null)
+                    _ped = new clsPlugExtraData();
+                return _ped;
             }
         }
 
@@ -570,15 +712,20 @@ namespace HSPI_AKTemplate
         {
             pedName = CheckPedName(pedName);
 
-            // TEMP
-            Log($"SavePED: '{pedName}' = '{Value}'");
+            //Console.WriteLine($"SavePED: '{pedName}' = '{Value}'"); // TEMP
+
+            //if (ped == null)
+            //{
+            //    ped = new clsPlugExtraData();
+            //    UpdatePED();
+            //}
 
             T val_saved = GetPED(pedName, deflt);
 
             if (!force && 0 == Comparer<T>.Default.Compare(Value, val_saved))
                 return false;
 
-            this.ped = Utils.PedAdd(this.ped, pedName, Value);
+            Utils.PedAdd(ref _ped, pedName, Value);
 
             // Force update PED (set_PlugExtraData_Set)
             UpdatePED();
@@ -718,7 +865,7 @@ namespace HSPI_AKTemplate
         /// <param name="error"></param>
         public void Log(string msg, bool error = false, bool warning = false)
         {
-            if (log_enable || error)
+            if (log_enable || error || warning)
             {
                 msg = $"[{RefId}]: {msg}";
                 Console.WriteLine(msg); // TEMP - TODO: only if console visible?
@@ -858,5 +1005,19 @@ namespace HSPI_AKTemplate
 
 
         #endregion URL Methods
+
+        #region ConfigDevice
+
+        public virtual string GetDeviceConfig()
+        {
+            return null;
+        }
+
+        public virtual ConfigDevicePostReturn ConfigDevicePost(NameValueCollection parts)
+        {
+            return ConfigDevicePostReturn.CallbackOnce;
+        }
+
+        #endregion ConfigDevice
     }
 }

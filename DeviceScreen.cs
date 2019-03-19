@@ -17,11 +17,12 @@ namespace HSPI_AKExample
             Create();
         }
 
-        public override void Create()
+        public override bool Create()
         {
-            Create("Screen", force: false);
+            bool created = Create("Screen", force: false);
             AddVSPair(0, "Off", ePairControlUse._Off, "/images/HomeSeer/status/off.gif");
             AddVSPair(100, "On", ePairControlUse._On, "/images/HomeSeer/status/on.gif");
+            return created;
         }
 
         public override void NotifyValueChange(double value, string cause)

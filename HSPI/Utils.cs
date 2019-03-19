@@ -87,7 +87,7 @@ namespace HSPI_AKTemplate
         ///<param name="PEDName">The key to look for. Moskus: I only use the pl</param>
         ///<param name="PEDValue"></param>
         ///<remarks></remarks>
-        public static clsPlugExtraData PedAdd(clsPlugExtraData ped, string pedName, object pedValue)
+        public static void PedAdd<T>(ref clsPlugExtraData ped, string pedName, T pedValue)
         {
             if (ped == null)
             {
@@ -96,9 +96,8 @@ namespace HSPI_AKTemplate
 
             SerializeObject(pedValue, out byte[] byteObject);
 
-            ped.RemoveNamed(pedName);
-            ped.AddNamed(pedName, byteObject);
-            return ped;
+            bool ret1 = ped.RemoveNamed(pedName);
+            bool ret2 = ped.AddNamed(pedName, byteObject);
         }
 
         /// <summary>

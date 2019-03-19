@@ -197,6 +197,14 @@ namespace HSPI_AKTemplate
             return UsedDevices.ContainsKey(devID);
         }
 
+        public void AddDevice(DeviceBase dev)
+        {
+            if (dev != null && dev.RefId > 0)
+            {
+                dev.update_info();
+                UsedDevices[dev.RefId] = dev;
+            }
+        }
 
         /// <summary>
         /// Set Device Value and DeviceString
@@ -206,9 +214,7 @@ namespace HSPI_AKTemplate
         public void SetDeviceValue(int deviceId, double value)
         {
             DeviceBase device = GetDevice(deviceId);
-            // Called from SetIOMulti - must use SetDeviceValueByRef, not CAPIControl
-            device.forceSetDeviceValueByRef = true; // Device will reset it back
-            device.Value = value;
+            device.SetValue(value);
         }
 
         /// <summary>
@@ -224,7 +230,8 @@ namespace HSPI_AKTemplate
             // TEMP - Update device list?
             UpdateDeviceList();
 
-            return "ConfigDevice";
+            DeviceBase dev = GetDevice(deviceId);
+            return dev.GetDeviceConfig();
         }
 
         /// <summary>
@@ -235,7 +242,8 @@ namespace HSPI_AKTemplate
         /// <returns></returns>
         public virtual Enums.ConfigDevicePostReturn ConfigDevicePost(int deviceId, NameValueCollection parts)
         {
-            return Enums.ConfigDevicePostReturn.CallbackOnce;
+            DeviceBase dev = GetDevice(deviceId);
+            return dev.ConfigDevicePost(parts);
         }
 
 

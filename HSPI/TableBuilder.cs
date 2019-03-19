@@ -231,7 +231,12 @@ namespace HSPI_AKTemplate
             ncols_row = 0;
         }
 
-        public void AddCell(string html, int colspan = 1, string klass = "device_status_image"/*"tablecell"*/, string attrs = "", string type = "td", string width = null)
+        public void AddCell( string html,
+                             int colspan = 1,
+                             string klass = "device_status_image"/*"tablecell"*/,
+                             string attrs = "",
+                             string type = "td",
+                             string width = null)
         {
             if (html == null) html = "";
 
@@ -434,9 +439,14 @@ namespace HSPI_AKTemplate
                 this.tb = tb;
             }
 
-            public void AddCell(string html, int colspan = 1, string klass = "device_status_image"/*"tablecell"*/, string attrs = "", string type = "td")
+            public void AddCell( string html,
+                                 int colspan = 1,
+                                 string klass = "device_status_image"/*"tablecell"*/,
+                                 string attrs = "",
+                                 string type = "td",
+                                 string width = null)
             {
-                tb.AddCell(html, colspan, klass, attrs, type);
+                tb.AddCell(html, colspan, klass, attrs, type, width);
             }
         }
 

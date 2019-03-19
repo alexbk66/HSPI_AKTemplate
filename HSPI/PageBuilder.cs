@@ -25,6 +25,9 @@ using System.Collections.Specialized;
 using HomeSeerAPI;
 using Scheduler;
 using static Scheduler.clsJQuery;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace HSPI_AKTemplate
 {
@@ -42,7 +45,7 @@ namespace HSPI_AKTemplate
     public class PageBuilder : PageBuilderAndMenu.clsPageBuilder
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HikAlarmPageBuilder"/> class.
+        /// PageBuilder Constructor.
         /// </summary>
         /// <param name="pagename">The name used by HomeSeer when referencing this particular page.</param>
         /// <param name="plugin"></param>
@@ -149,7 +152,7 @@ namespace HSPI_AKTemplate
                 AddFooter(hs.GetPageFooter());
             }
 
-            Utils.Log($"Duration '{PageName}': {duration} ms.");
+            //Utils.Log($"Duration '{PageName}': {duration} ms.");
 
             if (addHeaderFooter)
                 return BuildPage();
@@ -559,7 +562,7 @@ namespace HSPI_AKTemplate
         /// <param name="en">The Enum value</param>
         /// <param name="name">Control ID</param>
         /// <returns></returns>
-        public string RadioButtonEnum(Enum en, string name, bool enabled = true)
+        public string RadioButtonEnum(Enum en, string name, bool enabled = true, string[] names = null)
         {
             name = $"_radio_{name}";
 
@@ -571,15 +574,85 @@ namespace HSPI_AKTemplate
 
             foreach (int i in Enum.GetValues(en.GetType()))
             {
-                //Console.WriteLine($" {i}");
                 string s = Enum.GetName(en.GetType(), i);
+
                 if (s == en.ToString())
                     rb.@checked = $"{i}";
-                rb.values.Add($"{s}", $"{i}");
+
+                if (names != null)
+                    s = names[i];
+
+                if(s!="-" && s!="unknown")
+                    rb.values.Add($"{s}", $"{i}");
             }
 
             return rb.Build();
         }
+
+        /// <summary>
+        /// Process radio button control selection
+        /// For radio buttons the selected value is appended to control id (after underscore)
+        /// i.e.
+        /// id = _radio_grp_2_logic_1
+        /// _radio_grp_2_logic = 1
+        /// </summary>
+        /// <param name="ctrlID"></param>
+        /// <param name="value"></param>
+        /// <param name="parts"></param>
+        /// <returns></returns>
+        public static bool ProcessRadioBtn(ref string ctrlID, ref string value, NameValueCollection parts)
+        {
+            // i.e. "_radio_ctrlType_1" - where last _1 means selected value
+            GroupCollection match = Regex.Match(ctrlID, @"radio_(.+)_(\d)").Groups;
+            if (match.Count == 3)
+                try
+                {
+                    ctrlID = match[1].Value;
+                    value = parts[$"_radio_{ctrlID}"];
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Can't process {ctrlID}: {ex.Message}");
+                }
+            return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="o"></param>
+        /// <param name="table"></param>
+        public void TableObjectProperties(object o, TableBuilder table)
+        {
+            if (o == null)
+                return;
+
+            string[] hdr = { $"'{o}'", "Value" };
+            table.AddRowHeader(hdr);
+
+            FieldInfo[] fields = o.GetType().GetFields();
+            foreach (FieldInfo field in fields)
+            {
+                TableBuilder.TableRow row = table.AddRow();
+                row.AddCell(field.Name);
+                object val = field.GetValue(o);
+                if (val is Array)
+                {
+                    string s = "";
+                    foreach (var v in (val as Array))
+                    {
+                        s += (v != null ? v.ToString() : "") + ",";
+                    }
+                    val = s;
+                }
+                string sval = val != null ? val.ToString() : "";
+                if (sval.Length > 125)
+                    sval = sval.Substring(0, 125) + " ...";
+                row.AddCell(sval);
+            }
+        }
+
 
         /// <summary>
         /// Create string "name='value'" if val>=0
